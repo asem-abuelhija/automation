@@ -1,0 +1,27 @@
+---
+- name: install and activate RNG
+  hosts: cloudera_prod
+  become: yes
+  tasks:
+    - name: install package
+      yum:
+        name: rng-tools
+        state: present
+
+    - name: copy service file
+      copy:
+        remote_src: yes
+        src: /usr/lib/systemd/system/rngd.service
+        dest: /etc/systemd/system/
+
+    - name: edit service file
+      replace:
+        path: /etc/systemd/system/rngd.service
+        regexp: 'ExecStart=\/sbin\/rngd -f'
+        replace: 'ExecStart=/sbin/rngd -f -r /dev/urandom'
+    - name: enable and restart the service
+      systemd:
+        name: rngd
+        daemon_reload: yes
+        enabled: yes
+        state: restarted
