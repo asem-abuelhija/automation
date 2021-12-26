@@ -1,0 +1,46 @@
+---
+- name: Check the status of a package and print out a csv report
+  hosts: all
+  become: true
+  tasks:
+    - name: collect facts about system packages
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: collect facts about system services
+      service_facts:
+      register: services_state
+      
+    - name: Register Hostname and IP
+      shell: echo "{{ ansible_hostname }},{{ ansible_default_ipv4.address }}"
+      register: ClientInfo
+
+    - name: Create CSV file locally
+      local_action:
+        module: copy
+        content: "Hostname,IP,package1,package1 Process,package2,package2 Process\n"
+        dest: ./Packages.csv
+      run_once: true
+    - name: Append the 'installed' status of package1 to the CSV file
+      local_action:
+        module: lineinfile
+        line: "{{ ClientInfo.stdout_lines[0] }},Installed"
+        dest: ./Packages.csv
+      when: "'package1' in ansible_facts.packages"
+    - name: Append the 'Not installed' status of package1 to the CSV file
+      local_action:
+        module: lineinfile
+        line: "{{ ClientInfo.stdout_lines[0] }},Not Installed,Not Running"
+        dest: ./Packages.csv
+      when: "'package1' not in ansible_facts.packages"
+
+    - name: Append the 'running' status of package1 to the CSV file
+      local_action:
+        module: lineinfile
+        path: ./Packages.csv
+        regexp: "^{{ ClientInfo.stdout_lines[0] }}"
+        line: "{{ ClientInfo.stdout_lines[0] }},Installed,Running"
+        firstmatch: yes
+        state: present
+      when: ansible_facts.services['package1.service'].state == "running"
+...
