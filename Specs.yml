@@ -1,0 +1,10 @@
+---
+- name: Print out main specs
+  hosts: all
+  tasks:
+    - name: print out specs
+      shell: lscpu |grep "^CPU(s):"| awk '{print $1,$2}'; free -g |grep -v "^-"|awk '{print $1,$2}' |tail -2; echo -e "\nDisks:"; lsblk |grep "^sd" |awk '{print $1,$4}'
+      register: output
+    - name: print
+      debug:
+        var: output.stdout_lines
