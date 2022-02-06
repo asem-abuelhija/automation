@@ -1,0 +1,21 @@
+# Resolve weak Ciphers and Macs that SSHd is using
+
+---
+- name: Resolve vulnerable SSH MACs and Ciphers
+  hosts: all
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: Replace existing MACs and Ciphers
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '{{ item.From }}'
+        line: '{{ item.To }}'
+        state: present
+      with_items:
+        - {From: '^Ciphers', To: 'Ciphers aes128-ctr,aes192-ctr,aes256-ctr,arcfour256,arcfour128,arcfour'}
+        - {From: '^MACs', To: 'MACs hmac-sha1,umac-64@openssh.com,hmac-ripemd160,hmac-sha2-256,hmac-sha2-512,hmac-ripemd160@openssh.com'}
+    - name: Restart SSHd service
+      service:
+        name: sshd
+        state: restarted
